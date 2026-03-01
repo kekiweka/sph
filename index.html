@@ -5,67 +5,192 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Для Сони ❤️</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&display=swap');
+
         body {
             margin: 0;
             padding: 0;
-            background-color: #000; /* Черный фон */
+            background-color: #000;
             overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
+            font-family: 'Montserrat', sans-serif;
+            user-select: none;
         }
+
         canvas {
             display: block;
+        }
+
+        /* --- СТАРТОВЫЙ ЭКРАН --- */
+        #intro {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #000;
+            z-index: 50;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            transition: opacity 1s ease;
+        }
+
+        .pulse-text {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+
+        /* --- СУБТИТРЫ --- */
+        #lyrics {
+            position: absolute;
+            bottom: 15%; /* Отступ снизу */
+            width: 90%;
+            text-align: center;
+            color: #fff;
+            font-size: 22px;
+            font-weight: 700;
+            z-index: 10;
+            pointer-events: none;
+            /* Красивое неоновое свечение текста */
+            text-shadow: 0 0 10px rgba(255, 0, 50, 0.8), 0 0 20px rgba(255, 0, 50, 0.5);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        .show-lyric {
+            opacity: 1 !important;
+            transform: translateY(0) !important;
         }
     </style>
 </head>
 <body>
 
+    <div id="intro">
+        <div class="pulse-text">Нажми, чтобы открыть 💌</div>
+    </div>
+
+    <div id="lyrics"></div>
+
+    <audio id="bgMusic">
+        <source src="music.mp3" type="audio/mpeg">
+    </audio>
+
     <canvas id="heartCanvas"></canvas>
 
     <script>
+        // --- 1. ТАЙМИНГИ И ТЕКСТ СУБТИТРОВ ---
+        // time - секунды (когда должна появиться строчка)
+        // text - слова из песни "Мокрый район"
+        // ПРИМЕЧАНИЕ: Настрой секунды (time) точно под твой mp3 файл!
+        // --- 1. ТАЙМИНГИ И ТЕКСТ СУБТИТРОВ ---
+        const lyricsData = [
+            { time: 0.0, text: "" },
+            { time: 5.0, text: "Снова мокро, но мне всё побоку" },
+            { time: 8.0, text: "Я до тебя бегу, с тобою заебок мне" },
+            { time: 11.0, text: "Может, бахнем? Погляди, как пахнет" },
+            { time: 13.0, text: "Кроме тебя больше совсем таких девах нет" },
+            { time: 16.0, text: "Узнаю силуэт в окне" },
+            { time: 18.0, text: "Знаю, ты думаешь обо мне" },
+            { time: 21.0, text: "От тебя забегали по спине" },
+            { time: 24.0, text: "Без тебя вообще больше смысла нет" },
+            { time: 27.0, text: "Только тобой я дышу в июльской жаре" },
+            { time: 29.0, text: "С нами городской шум и блеск фонаря" },
+            { time: 32.0, text: "Никуда не спешу, душу мне согрей" },
+            { time: 34.0, text: "Ну-ка, ну-ка, подойди же ко мне скорей" },
+            { time: 37.0, text: "Никого не вижу, кроме" },
+            { time: 39.0, text: "Тону с тобой, если это не любовь, что тогда любовь?" },
+            { time: 43.0, text: "И не то, что мне совсем без тебя слабо" },
+            { time: 46.0, text: "Просто, попросту с тобою мне заебок" },
+            { time: 49.0, text: "кис я правда тебя очень сильно люблю" },
+            { time: 51.0, text: "я хочу чтобы ты всегда не сомневалась в моей любви к тебе" },
+            { time: 54.0, text: "ты самый лучший человек в моей жизни кого я встречал" },
+            { time: 57.0, text: "я очень сильно тебя люблю" },
+            { time: 59.0, text: "ты самый прекрасный человек на этом свете" },
+            { time: 61.0, text: "я хочу прожить с тобой всю жизнь." },
+            { time: 63.0, text: "ты единственная кому я могу довериться,честно, я просто в ахуе что ты у меня есть" },
+            { time: 66.0, text: "Соня, я люблю тебя ❤️" } // Финальная надпись в самом конце!
+        ];
+
+        // --- 2. ЛОГИКА СУБТИТРОВ И МУЗЫКИ ---
+        const bgMusic = document.getElementById('bgMusic');
+        const introScreen = document.getElementById('intro');
+        const lyricsElement = document.getElementById('lyrics');
+        
+        let currentLyricIndex = -1;
+
+        // Запуск по клику на экран
+        introScreen.addEventListener('click', () => {
+            introScreen.style.opacity = '0'; // Плавно прячем заставку
+            setTimeout(() => introScreen.style.display = 'none', 1000); // Убираем совсем
+            bgMusic.play(); // Включаем трек
+        });
+
+        // Отслеживаем время песни для показа субтитров
+        bgMusic.addEventListener('timeupdate', () => {
+            const currentTime = bgMusic.currentTime;
+            
+            // Ищем актуальную строчку
+            let activeIndex = -1;
+            for (let i = 0; i < lyricsData.length; i++) {
+                if (currentTime >= lyricsData[i].time) {
+                    activeIndex = i;
+                }
+            }
+
+            // Если строчка сменилась — обновляем текст на экране
+            if (activeIndex !== currentLyricIndex && activeIndex !== -1) {
+                currentLyricIndex = activeIndex;
+                const text = lyricsData[activeIndex].text;
+                
+                if (text === "") {
+                    lyricsElement.classList.remove('show-lyric');
+                } else {
+                    lyricsElement.innerText = text;
+                    lyricsElement.classList.add('show-lyric');
+                }
+            }
+        });
+
+
+        // --- 3. ЛОГИКА 3D-СЕРДЦА И ИСКОРОК ---
         const canvas = document.getElementById('heartCanvas');
         const ctx = canvas.getContext('2d');
         
-        // Настраиваем размер под экран
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
         let time = 0;
         const particles = [];
-        const numParticles = 100; // Количество искорок
+        const numParticles = 100;
 
-        // Класс для создания искорок
         class Particle {
-            constructor() {
-                this.reset();
-            }
-
+            constructor() { this.reset(); }
             reset() {
-                // Появляются в области сердца
                 this.x = canvas.width / 2 + (Math.random() - 0.5) * 100;
                 this.y = canvas.height / 2 + (Math.random() - 0.5) * 100;
-                // Вектор движения вверх и немного в стороны
                 this.vx = (Math.random() - 0.5) * 1;
-                this.vy = -Math.random() * 2 - 1; // Всегда вверх
-                this.life = 1; // Жизнь (альфа-канал)
-                this.decay = Math.random() * 0.01 + 0.005; // Скорость затухания
-                this.size = Math.random() * 2 + 1; // Размер искорки
-                // Цвет от ярко-красного до золотистого
+                this.vy = -Math.random() * 2 - 1; 
+                this.life = 1; 
+                this.decay = Math.random() * 0.01 + 0.005; 
+                this.size = Math.random() * 2 + 1; 
                 this.color = `hsl(${Math.random() * 20 + 350}, 100%, ${Math.random() * 30 + 50}%)`;
             }
-
             update() {
                 this.x += this.vx;
                 this.y += this.vy;
-                this.life -= this.decay; // Затухание
-
-                if (this.life <= 0) {
-                    this.reset();
-                }
+                this.life -= this.decay;
+                if (this.life <= 0) this.reset();
             }
-
             draw() {
                 ctx.globalAlpha = this.life;
                 ctx.fillStyle = this.color;
@@ -75,65 +200,46 @@
             }
         }
 
-        // Создаем массив частиц
-        for (let i = 0; i < numParticles; i++) {
-            particles.push(new Particle());
-        }
+        for (let i = 0; i < numParticles; i++) particles.push(new Particle());
 
-        // Математическая формула идеального сердечка
         function getHeartPoint(t) {
             let x = 16 * Math.pow(Math.sin(t), 3);
             let y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
             return { x, y };
         }
         
-        // Функция анимации
         function render() {
-            // Эффект шлейфа (немного прозрачный черный фон поверх старых кадров)
             ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
             ctx.globalAlpha = 1;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // --- РИСУЕМ МАГИЧЕСКИЕ ИСКОРКИ ---
-            particles.forEach(p => {
-                p.update();
-                p.draw();
-            });
+            particles.forEach(p => { p.update(); p.draw(); });
 
-            // --- РИСУЕМ СЕРДЦЕ ИЗ ТЕКСТА ---
-            ctx.globalAlpha = 1; // Возвращаем прозрачность для сердца
+            ctx.globalAlpha = 1; 
             ctx.font = "bold 14px monospace";
             ctx.textAlign = "center";
             
             let cx = canvas.width / 2;
             let cy = canvas.height / 2;
             
-            // Рисуем несколько слоев сердца для эффекта 3D
             for (let j = 0; j < 6; j++) { 
-                // Пульсация и масштаб
                 let scale = (Math.min(canvas.width, canvas.height) / 50) - (j * 1.5) + Math.sin(time + j) * 1.5;
-                
                 for (let i = 0; i < Math.PI * 2; i += 0.15) {
                     let p = getHeartPoint(i);
-                    // Цвет текста (от ярко-красного к темно-бордовому в глубине)
                     ctx.fillStyle = `hsl(350, 100%, ${60 - j * 8}%)`; 
-                    
-                    // ТЕКСТ ДЛЯ СОНИ
                     ctx.fillText("I love you, Соня", cx + p.x * scale, cy - p.y * scale);
                 }
             }
             
-            time += 0.05; // Скорость пульсации
+            time += 0.05; 
             requestAnimationFrame(render);
         }
 
         render();
 
-        // Обновляем холст при изменении размера
         window.addEventListener('resize', () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            // Обнуляем частицы, чтобы они не разлетелись при ресайзе
             particles.forEach(p => p.reset());
         });
     </script>
