@@ -57,20 +57,17 @@
         /* --- ФОТОГРАФИИ --- */
         .memory-photo {
             position: absolute;
-            /* Центрируем фото чуть ниже сердца, чтобы не перекрывать всё */
             top: 45%; 
             left: 50%;
             transform: translate(-50%, -50%) scale(0.95);
             max-width: 80vw;
             max-height: 45vh;
             border-radius: 15px;
-            /* Красивое красное свечение вокруг фото */
             box-shadow: 0 0 30px rgba(255, 0, 50, 0.4);
             z-index: 5;
             opacity: 0;
             pointer-events: none;
             object-fit: cover;
-            /* Плавное появление (2 секунды) и увеличение */
             transition: opacity 2s ease, transform 4s ease;
         }
 
@@ -107,7 +104,7 @@
 <body>
 
     <div id="intro">
-        <div class="pulse-text">кис, включи звук и нажми! 💌</div>
+        <div class="pulse-text">Нажми, чтобы открыть 💌</div>
     </div>
 
     <img id="photo1" class="memory-photo" src="1.png" alt="photo1">
@@ -152,12 +149,11 @@
             { time: 66.0, text: "Соня, я люблю тебя ❤️" } 
         ];
 
-        // --- 2. ЛОГИКА СУБТИТРОВ, МУЗЫКИ И ПОЯВЛЕНИЯ ФОТО ---
+        // --- 2. ЛОГИКА СУБТИТРОВ, МУЗЫКИ И ФОТО ---
         const bgMusic = document.getElementById('bgMusic');
         const introScreen = document.getElementById('intro');
         const lyricsElement = document.getElementById('lyrics');
         
-        // Получаем наши фотки
         const photo1 = document.getElementById('photo1');
         const photo2 = document.getElementById('photo2');
         const photo3 = document.getElementById('photo3');
@@ -173,29 +169,26 @@
         bgMusic.addEventListener('timeupdate', () => {
             const currentTime = bgMusic.currentTime;
             
-            // ЛОГИКА ПОЯВЛЕНИЯ ФОТОГРАФИЙ (Плавное появление и исчезновение)
-            // 1-я фотка: с 49.5 до 58 секунды
+            // ФОТО 1
             if (currentTime >= 49.5 && currentTime < 58) {
                 photo1.classList.add('show-photo');
             } else {
                 photo1.classList.remove('show-photo');
             }
-
-            // 2-я фотка: с 59.5 до 66.5 секунды
+            // ФОТО 2
             if (currentTime >= 59.5 && currentTime < 66.5) {
                 photo2.classList.add('show-photo');
             } else {
                 photo2.classList.remove('show-photo');
             }
-
-            // 3-я фотка: с 67.5 секунды и до конца
+            // ФОТО 3
             if (currentTime >= 67.5 && currentTime < 85) {
                 photo3.classList.add('show-photo');
             } else {
                 photo3.classList.remove('show-photo');
             }
 
-            // ЛОГИКА СУБТИТРОВ
+            // СУБТИТРЫ
             let activeIndex = -1;
             for (let i = 0; i < lyricsData.length; i++) {
                 if (currentTime >= lyricsData[i].time) {
@@ -216,8 +209,7 @@
             }
         });
 
-
-        // --- 3. ЛОГИКА 3D-СЕРДЦА И ИСКОРОК ---
+        // --- 3. ИСПРАВЛЕННАЯ ЛОГИКА СЕРДЦА ---
         const canvas = document.getElementById('heartCanvas');
         const ctx = canvas.getContext('2d');
         
@@ -264,24 +256,34 @@
         }
         
         function render() {
-            ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+            // Чуть сильнее затемняем старые кадры (чтобы убрать кашу)
+            ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
             ctx.globalAlpha = 1;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
             particles.forEach(p => { p.update(); p.draw(); });
 
             ctx.globalAlpha = 1; 
-            ctx.font = "bold 14px monospace";
+            
+            // Динамический размер шрифта: на телефоне будет мелкий, на компе крупный
+            let fontSize = Math.max(9, Math.floor(canvas.width / 45));
+            ctx.font = `bold ${fontSize}px monospace`;
             ctx.textAlign = "center";
             
             let cx = canvas.width / 2;
             let cy = canvas.height * 0.38;
             
-            for (let j = 0; j < 6; j++) { 
-                let scale = (Math.min(canvas.width, canvas.height) / 50) - (j * 1.5) + Math.sin(time + j) * 1.5;
-                for (let i = 0; i < Math.PI * 2; i += 0.15) {
+            // Базовый масштаб
+            let baseScale = Math.min(canvas.width, canvas.height) / 45;
+
+            // ОСТАВИЛИ ВСЕГО 2 СЛОЯ (вместо 6), чтобы сердце было "полым"
+            for (let j = 0; j < 2; j++) { 
+                let scale = baseScale - (j * 1.5) + Math.sin(time + j) * 1.5;
+                
+                // РАЗДВИНУЛИ СЛОВА (было += 0.15, стало += 0.35)
+                for (let i = 0; i < Math.PI * 2; i += 0.35) {
                     let p = getHeartPoint(i);
-                    ctx.fillStyle = `hsl(350, 100%, ${60 - j * 8}%)`; 
+                    ctx.fillStyle = `hsl(350, 100%, ${65 - j * 15}%)`; 
                     ctx.fillText("I love you, Соня", cx + p.x * scale, cy - p.y * scale);
                 }
             }
