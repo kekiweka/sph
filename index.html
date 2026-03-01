@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Для Сони ❤️</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&display=swap');
@@ -18,10 +18,15 @@
             height: 100vh;
             font-family: 'Montserrat', sans-serif;
             user-select: none;
+            -webkit-touch-callout: none;
         }
 
         canvas {
             display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
         }
 
         /* --- СТАРТОВЫЙ ЭКРАН --- */
@@ -49,18 +54,44 @@
             100% { transform: scale(1); opacity: 0.8; }
         }
 
+        /* --- ФОТОГРАФИИ --- */
+        .memory-photo {
+            position: absolute;
+            /* Центрируем фото чуть ниже сердца, чтобы не перекрывать всё */
+            top: 45%; 
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.95);
+            max-width: 80vw;
+            max-height: 45vh;
+            border-radius: 15px;
+            /* Красивое красное свечение вокруг фото */
+            box-shadow: 0 0 30px rgba(255, 0, 50, 0.4);
+            z-index: 5;
+            opacity: 0;
+            pointer-events: none;
+            object-fit: cover;
+            /* Плавное появление (2 секунды) и увеличение */
+            transition: opacity 2s ease, transform 4s ease;
+        }
+
+        .show-photo {
+            opacity: 1 !important;
+            transform: translate(-50%, -50%) scale(1.02) !important;
+        }
+
         /* --- СУБТИТРЫ --- */
         #lyrics {
             position: absolute;
-            bottom: 15%; /* Отступ снизу */
-            width: 90%;
+            bottom: 20%;
+            width: 86%;
+            padding: 0 7%; 
             text-align: center;
             color: #fff;
-            font-size: 22px;
+            font-size: clamp(16px, 5vw, 22px); 
+            line-height: 1.4;
             font-weight: 700;
             z-index: 10;
             pointer-events: none;
-            /* Красивое неоновое свечение текста */
             text-shadow: 0 0 10px rgba(255, 0, 50, 0.8), 0 0 20px rgba(255, 0, 50, 0.5);
             transition: opacity 0.3s ease, transform 0.3s ease;
             opacity: 0;
@@ -76,8 +107,12 @@
 <body>
 
     <div id="intro">
-        <div class="pulse-text">Нажми, чтобы открыть 💌</div>
+        <div class="pulse-text">кис, включи звук и нажми! 💌</div>
     </div>
+
+    <img id="photo1" class="memory-photo" src="1.png" alt="photo1">
+    <img id="photo2" class="memory-photo" src="2.png" alt="photo2">
+    <img id="photo3" class="memory-photo" src="3.png" alt="photo3">
 
     <div id="lyrics"></div>
 
@@ -88,10 +123,6 @@
     <canvas id="heartCanvas"></canvas>
 
     <script>
-        // --- 1. ТАЙМИНГИ И ТЕКСТ СУБТИТРОВ ---
-        // time - секунды (когда должна появиться строчка)
-        // text - слова из песни "Мокрый район"
-        // ПРИМЕЧАНИЕ: Настрой секунды (time) точно под твой mp3 файл!
         // --- 1. ТАЙМИНГИ И ТЕКСТ СУБТИТРОВ ---
         const lyricsData = [
             { time: 0.0, text: "" },
@@ -117,29 +148,54 @@
             { time: 57.0, text: "я очень сильно тебя люблю" },
             { time: 59.0, text: "ты самый прекрасный человек на этом свете" },
             { time: 61.0, text: "я хочу прожить с тобой всю жизнь." },
-            { time: 63.0, text: "ты единственная кому я могу довериться,честно, я просто в ахуе что ты у меня есть" },
-            { time: 66.0, text: "Соня, я люблю тебя ❤️" } // Финальная надпись в самом конце!
+            { time: 63.0, text: "ты единственная кому я могу довериться, честно, я просто в ахуе что ты у меня есть" },
+            { time: 66.0, text: "Соня, я люблю тебя ❤️" } 
         ];
 
-        // --- 2. ЛОГИКА СУБТИТРОВ И МУЗЫКИ ---
+        // --- 2. ЛОГИКА СУБТИТРОВ, МУЗЫКИ И ПОЯВЛЕНИЯ ФОТО ---
         const bgMusic = document.getElementById('bgMusic');
         const introScreen = document.getElementById('intro');
         const lyricsElement = document.getElementById('lyrics');
         
+        // Получаем наши фотки
+        const photo1 = document.getElementById('photo1');
+        const photo2 = document.getElementById('photo2');
+        const photo3 = document.getElementById('photo3');
+        
         let currentLyricIndex = -1;
 
-        // Запуск по клику на экран
         introScreen.addEventListener('click', () => {
-            introScreen.style.opacity = '0'; // Плавно прячем заставку
-            setTimeout(() => introScreen.style.display = 'none', 1000); // Убираем совсем
-            bgMusic.play(); // Включаем трек
+            introScreen.style.opacity = '0'; 
+            setTimeout(() => introScreen.style.display = 'none', 1000); 
+            bgMusic.play(); 
         });
 
-        // Отслеживаем время песни для показа субтитров
         bgMusic.addEventListener('timeupdate', () => {
             const currentTime = bgMusic.currentTime;
             
-            // Ищем актуальную строчку
+            // ЛОГИКА ПОЯВЛЕНИЯ ФОТОГРАФИЙ (Плавное появление и исчезновение)
+            // 1-я фотка: с 49.5 до 58 секунды
+            if (currentTime >= 49.5 && currentTime < 58) {
+                photo1.classList.add('show-photo');
+            } else {
+                photo1.classList.remove('show-photo');
+            }
+
+            // 2-я фотка: с 59.5 до 66.5 секунды
+            if (currentTime >= 59.5 && currentTime < 66.5) {
+                photo2.classList.add('show-photo');
+            } else {
+                photo2.classList.remove('show-photo');
+            }
+
+            // 3-я фотка: с 67.5 секунды и до конца
+            if (currentTime >= 67.5 && currentTime < 85) {
+                photo3.classList.add('show-photo');
+            } else {
+                photo3.classList.remove('show-photo');
+            }
+
+            // ЛОГИКА СУБТИТРОВ
             let activeIndex = -1;
             for (let i = 0; i < lyricsData.length; i++) {
                 if (currentTime >= lyricsData[i].time) {
@@ -147,7 +203,6 @@
                 }
             }
 
-            // Если строчка сменилась — обновляем текст на экране
             if (activeIndex !== currentLyricIndex && activeIndex !== -1) {
                 currentLyricIndex = activeIndex;
                 const text = lyricsData[activeIndex].text;
@@ -177,7 +232,7 @@
             constructor() { this.reset(); }
             reset() {
                 this.x = canvas.width / 2 + (Math.random() - 0.5) * 100;
-                this.y = canvas.height / 2 + (Math.random() - 0.5) * 100;
+                this.y = canvas.height * 0.38 + (Math.random() - 0.5) * 100;
                 this.vx = (Math.random() - 0.5) * 1;
                 this.vy = -Math.random() * 2 - 1; 
                 this.life = 1; 
@@ -220,7 +275,7 @@
             ctx.textAlign = "center";
             
             let cx = canvas.width / 2;
-            let cy = canvas.height / 2;
+            let cy = canvas.height * 0.38;
             
             for (let j = 0; j < 6; j++) { 
                 let scale = (Math.min(canvas.width, canvas.height) / 50) - (j * 1.5) + Math.sin(time + j) * 1.5;
